@@ -1,5 +1,4 @@
 import random
-import json
 
 #   defaults
 default_pin_amount = 4
@@ -39,92 +38,89 @@ def random_color(pin_am, color_am):
     return color
 
 
-def get_feedback(correct_comb, attempt):
+def get_pro_feedback(correct_comb, attempt, feedbacks=None, color_dict=None):
     correct_comb: list
     attempt: list
     feedback = []
     cor_used = []
     for color_i in range(len(attempt)):
         if attempt[color_i] == correct_comb[color_i]:
-            feedback.append(2)
+            feedback.append(1)
             cor_used.append(color_i)
     for color_i in range(len(correct_comb)):
         if color_i not in cor_used and correct_comb[color_i] in attempt:
-            feedback.append(1)
+            feedback.append(0)
     return feedback
 
 
-def update_possibilities(poss, past_atmpt, feedbacks):
+def update_possibilities(possa, past_atmpt, feedbacks):
+    poss = list(possa)
+    #feedbacks[-1].sort(reverse=True)
     remove_indexes = []
     for tc_i in range(len(poss)):     # Test Case index
-        if not(get_feedback(poss[tc_i], past_atmpt[-1]) == feedbacks[-1]):
+        if not(get_pro_feedback(poss[tc_i], past_atmpt[-1]) == feedbacks[-1]):
             remove_indexes.insert(0, tc_i)
     for rem in remove_indexes:
         poss.pop(rem)
     return poss
 
 
-def get_attempt(poss, att, feeds):
+def get_pro_attempt(poss, att, feeds, color_dict):
+    if [0, 0, 1, 1] in poss:
+        return [0, 0, 1, 1]
     return poss[random.randint(0, len(poss)-1)]
     unused_poss = [i for j, i in enumerate(poss) if j not in att]
     scores = []
     for left_poss_i in range(len(poss)):
+        print(left_poss_i, scores)
         worst_score = None
         for un_poss_i in range(len(unused_poss)):
-            feedback = get_feedback(poss[left_poss_i], unused_poss[un_poss_i])
+            feedback = get_pro_feedback(poss[left_poss_i], unused_poss[un_poss_i])
             score = len(update_possibilities(poss, att, [feedback]))
+            #print(score)
             if worst_score is None:
-                worst_score_score = score
+                worst_score = score
             elif score > worst_score:
-                worst_score = worst_score
+                worst_score = score
         scores.append(worst_score)
     return poss[scores.index(min(scores))]
 
 
-def play_as_breaker(pin_amount=default_pin_amount, color_amount=default_color_amount,  color_dict=default_color_dict):
+def get_user_feedback(poss, att, feedbacks, color_dict):
+    return list(map(int, input("feedback: ").split(' ')))
+
+
+def get_user_attempt(poss, att, feeds, color_dict):
+    attempt = input("attempt: ").lower().split(' ')
+    for color_i in range(len(attempt)):
+        attempt[color_i] = color_dict.index(attempt[color_i])
+    return attempt
+
+
+def play(get_feedback=get_pro_feedback, get_attempt=get_pro_attempt,
+         pin_amount=default_pin_amount, color_amount=default_color_amount,  color_dict=default_color_dict):
     possi = generate_all_possibilities(pin_amount, color_amount)
-    attempts, feedbacks = [[0, 0, 1, 1]], []
+    attempts, feedbacks = [], []
+    gen = random_color(pin_amount, color_amount)
+    print("color options:", color_dict, '\n')
     while True:
+        attempts.append(get_attempt(possi, attempts, feedbacks, color_dict))
         attempt_string = ''
         for color_code in attempts[-1]:
             attempt_string = attempt_string + ' ' + color_dict[color_code]
-        feedbacks.append(json.loads(input("attempt:{}, feedback: ".format(attempt_string))))
-        #print("attempt: {}, feedback: {}".format(attempts[-1], feedbacks[-1]),
-        #      end=' ' * ((3 + pin_amount * 3) - len(str(feedbacks[-1]))))
-        if feedbacks[-1] == [2] * pin_amount:
+        print("attempt:" + attempt_string)
+        feedbacks.append(get_feedback(gen, attempts[-1], feedbacks, color_dict))
+        print("feedback:", feedbacks[-1])
+        if feedbacks[-1] == [1] * pin_amount:
+            print("\ndone in {} steps".format(len(attempts)))
             break
         possi = update_possibilities(possi, attempts, feedbacks)
+        if len(possi) <= 0:
+            print("\nNo possibilities")
+            break
         print("still {} possibilities".format(len(possi)))
-        attempts.append(get_attempt(possi, attempts, feedbacks))
-    print("\nDone in {} steps".format(len(attempts)))
-
-
-def play_as_maker(pin_amount=default_pin_amount, color_amount=default_color_amount, color_dict=default_color_dict):
-    print("Color options: {}".format(color_dict))
-    cor = random_color(pin_amount, color_amount)
-    attempts = []
-    while True:
-        attempt = input("attempt: ").split(' ')
-        for color_i in range(len(attempt)):
-            attempt[color_i] = color_dict.index(attempt[color_i])
-        attempts.append(attempt)
-
+    print()
 
 
 if __name__ == "__main__":
-    play_as_breaker()
-    pin_amount = 4
-    color_amount = 8
-    possi = generate_all_possibilities(pin_amount, color_amount)
-    cor = random_color(pin_amount, color_amount)
-    # cor = [4, 1, 5, 3]
-    attempts, feedbacks = [[0, 0, 1, 1]], []
-    while True:
-        feedbacks.append(get_feedback(cor, attempts[-1]))
-        print("attempt: {}, feedback: {}".format(attempts[-1], feedbacks[-1]), end=' '*((3 + pin_amount*3) - len(str(feedbacks[-1]))))
-        if feedbacks[-1] == [2]*pin_amount:
-            break
-        poss = update_possibilities(possi, attempts, feedbacks)
-        print("still {} possibilities".format(len(poss)))
-        attempts.append(get_attempt(possi, attempts, feedbacks))
-    print("\nDone in {} steps".format(len(attempts)))
+    play(get_feedback=get_pro_feedback, get_attempt=get_pro_attempt)
