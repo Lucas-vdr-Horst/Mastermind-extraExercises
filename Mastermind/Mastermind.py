@@ -25,7 +25,7 @@ def next_poss(previous_colors, color_am):
 #   Give all the possibilities (all the color combinations) with these amount of pins and the amount of colors
 def generate_all_possibilities(pin_am, color_am):
     all_poss = []
-    new_color = [0]*pin_am
+    new_color = [0] * pin_am
     while True:
         all_poss.append(new_color)
         new_color = next_poss(new_color, color_am)
@@ -38,7 +38,7 @@ def generate_all_possibilities(pin_am, color_am):
 def random_color_comb(pin_am, color_am):
     color_comb = []
     for i in range(pin_am):
-        color_comb.append(random.randint(0, color_am-1))
+        color_comb.append(random.randint(0, color_am - 1))
     return color_comb
 
 
@@ -65,8 +65,8 @@ def update_possibilities(possibilities, past_atmpt, feedbacks):
     poss = list(possibilities)
     # feedbacks[-1].sort(reverse=True)
     remove_indexes = []
-    for tc_i in range(len(poss)):     # Test Case index
-        if not(get_pro_feedback(poss[tc_i], past_atmpt[-1]) == feedbacks[-1]):
+    for tc_i in range(len(poss)):  # Test Case index
+        if not (get_pro_feedback(poss[tc_i], past_atmpt[-1]) == feedbacks[-1]):
             remove_indexes.insert(0, tc_i)
     for rem in remove_indexes:
         poss.pop(rem)
@@ -97,12 +97,20 @@ def get_pro_attempt(poss, att, feeds):
     return poss[scores.index(min(scores))]
     """
 
-    return poss[random.randint(0, len(poss)-1)]
+    return poss[random.randint(0, len(poss) - 1)]
 
 
 #   Asks the user in the console for feedback
 def get_user_feedback(poss, att):
-    return list(map(int, input("feedback: ").split(' ')))
+    while True:
+        try:
+            feedback = list(map(int, input("feedback: ").split(' ')))
+            if 0 <= feedback[0] <= 4 and 0 <= feedback[1] <= 4 and sum(feedback) <= 4:
+                return feedback
+        except:
+            pass
+        finally:
+            print("User input not in the right format")
 
 
 #   Asks the user in the console for a attempt
@@ -115,7 +123,7 @@ def get_user_attempt(poss, att, feeds, color_text):
 
 #   Play the game by the rules in a turn-based loop
 def play(get_feedback=get_pro_feedback, get_attempt=get_pro_attempt, cor=None,
-         pin_amount=default_pin_amount, color_amount=default_color_amount,  color_text=default_color_text):
+         pin_amount=default_pin_amount, color_amount=default_color_amount, color_text=default_color_text):
     possi = generate_all_possibilities(pin_amount, color_amount)
     attempts, feedbacks = [], []
     if cor is None:
@@ -141,4 +149,4 @@ def play(get_feedback=get_pro_feedback, get_attempt=get_pro_attempt, cor=None,
 
 
 if __name__ == "__main__":
-    play(get_feedback=get_pro_feedback)
+    play(get_feedback=get_user_feedback)
