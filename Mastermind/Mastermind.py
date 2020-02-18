@@ -128,7 +128,8 @@ def play(get_feedback=get_pro_feedback, get_attempt=get_pro_attempt, cor=None,
     attempts, feedbacks = [], []
     if cor is None:
         cor = random_color_comb(pin_amount, color_amount)
-    print("color options:", color_text, '\n')
+    print("color options:", color_text)
+    print("Feedback format = ?", '\n') # zet hier het invoer formaat in, hij geeft nu steeds aan dat t formaat niet klopt.
     while True:
         attempts.append(get_attempt(possi, attempts, feedbacks))
         attempt_string = ''
