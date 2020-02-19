@@ -6,7 +6,7 @@ HBO-ICT Utrecht AI Structured Programming
 Mastermind
 
 It's really easy to crash the program, there is very little user input check,
-because that wasn't the point of the project, it was about the logic
+because that wasn't my point of the project, it was about the logic
 """
 
 #   defaults:
@@ -99,9 +99,15 @@ def update_possibilities(possibilities, past_atmpt, feedbacks):
 
 
 #   The program gives a new attempt based on the possibilities, the previous attempts and the feedback it got
-def get_pro_attempt(poss, att, feeds, color_text):
-    #   following lines are "under construction", these will at the moment never be run
-    """
+#   However this function was writting before I read the "YET ANOTHER MASTERMIND STRATEGY paper by Barteld Kooi",
+#   it's basically the same as his 2.1 strategy
+def a_simple_strategy(poss, att, feeds, color_text):
+    return poss[random.randint(0, len(poss) - 1)]
+
+
+#   following lines are "under construction", these will at the moment never be run
+"""
+def looking_one_step_ahead(poss, att, feeds, color_text):
     unused_poss = [i for j, i in enumerate(poss) if j not in att]
     scores = []
     for left_poss_i in range(len(poss)):
@@ -117,9 +123,11 @@ def get_pro_attempt(poss, att, feeds, color_text):
                 worst_score = score
         scores.append(worst_score)
     return poss[scores.index(min(scores))]
-    """
+"""
 
-    return poss[random.randint(0, len(poss) - 1)]
+
+def process_efficient_strategy(poss, att, feeds, color_text):
+    pass
 
 
 #   Asks the user in the console for feedback
@@ -148,7 +156,7 @@ def get_user_attempt(poss, att, feeds, color_text):
 
 #   Play the game by the rules in a turn-based loop
 def play(get_feedback=get_pro_feedback,
-         get_attempt=get_pro_attempt,
+         get_attempt=a_simple_strategy,
          cor=None,
          pin_amount=default_pin_amount,
          color_amount=default_color_amount,
@@ -181,12 +189,6 @@ def play(get_feedback=get_pro_feedback,
             break
         print("Still {} possibilities".format(len(possi)))
     print()
-    """""
-    try:
-        
-    except:
-        print("Something went wrong during the game.")
-    """
 
 
 #   A example of getting user input for the settings of the game
@@ -194,7 +196,7 @@ if __name__ == "__main__":
     if input("Should the computer be the code breaker? Y/n\t").lower() in ('n', 'no'):
         breaker = get_user_attempt
     else:
-        breaker = get_pro_attempt
+        breaker = a_simple_strategy
 
     if input("Should the computer be the code master? Y/n\t").lower() in ('n', 'no'):
         master = get_user_feedback
