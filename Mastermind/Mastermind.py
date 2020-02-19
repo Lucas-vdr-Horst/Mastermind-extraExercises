@@ -1,5 +1,14 @@
 import random
 
+"""
+Lucas van der Horst
+HBO-ICT Utrecht AI Structured Programming
+Mastermind
+
+It's really easy to crash the program, there is very little user input check,
+because that wasn't the point of the project, it was about the logic
+"""
+
 #   defaults:
 default_pin_amount = 4
 default_color_text = ('red', 'yellow', 'black', 'white', 'green', 'blue', 'brown', 'orange', 'purple', 'pink', 'gray')
