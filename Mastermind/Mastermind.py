@@ -23,20 +23,24 @@ def next_comb(previous_colors, color_am):
 
 
 #   Give all the possibilities (all the color combinations) with these amount of pins and the amount of colors
-def generate_all_possibilities(pin_am, color_am):
+def generate_all_possibilities(pin_am, color_am, duplicates):
     all_poss = []
-    new_color = [0] * pin_am
-    while new_color is not None:
-        all_poss.append(new_color)
-        new_color = next_comb(new_color, color_am)
+    new_comb = [0] * pin_am
+    while new_comb is not None:
+        if duplicates or len(set(new_comb)) == len(new_comb):
+            all_poss.append(new_comb)
+        new_comb = next_comb(new_comb, color_am)
     return all_poss
 
 
 #   Gives a random color combination
-def random_color_comb(pin_am, color_am):
+def random_color_comb(pin_am, color_am, duplicates):
     color_comb = []
     for i in range(pin_am):
-        color_comb.append(random.randint(0, color_am - 1))
+        new_color = random.randint(0, color_am - 1)
+        while not(duplicates) and new_color in color_comb:
+            new_color = random.randint(0, color_am - 1)
+        color_comb.append(new_color)
     return color_comb
 
 
@@ -87,9 +91,6 @@ def update_possibilities(possibilities, past_atmpt, feedbacks):
 
 #   The program gives a new attempt based on the possibilities, the previous attempts and the feedback it got
 def get_pro_attempt(poss, att, feeds, color_text):
-    if [0, 0, 1, 2] in poss:
-        return [0, 0, 1, 2]
-
     #   following lines are "under construction", these will at the moment never be run
     """
     unused_poss = [i for j, i in enumerate(poss) if j not in att]
@@ -142,37 +143,41 @@ def play(get_feedback=get_pro_feedback,
          cor=None,
          pin_amount=default_pin_amount,
          color_amount=default_color_amount,
-         color_text=default_color_text):
+         color_text=default_color_text,
+         duplicates=True):
+    possi = generate_all_possibilities(pin_amount, color_amount, duplicates)
+    attempts, feedbacks = [], []
+    if cor is None:
+        cor = random_color_comb(pin_amount, color_amount, duplicates)
+
+    print("\nColor options:", color_text, '\n')
+
+    while True:
+        attempts.append(get_attempt(possi, attempts, feedbacks, color_text))
+
+        attempt_string = ''
+        for color_code in attempts[-1]:
+            attempt_string = attempt_string + ' ' + color_text[color_code]
+        print("Attempt:" + attempt_string)
+
+        feedbacks.append(get_feedback(cor, attempts[-1]))
+        print("Feedback:", feedbacks[-1])
+        if feedbacks[-1][0] == pin_amount:
+            print("\nDone in {} steps".format(len(attempts)))
+            break
+
+        possi = update_possibilities(possi, attempts, feedbacks)
+        if len(possi) <= 0:
+            print("\nNo possibilities")
+            break
+        print("Still {} possibilities".format(len(possi)))
+    print()
+    """""
     try:
-        possi = generate_all_possibilities(pin_amount, color_amount)
-        attempts, feedbacks = [], []
-        if cor is None:
-            cor = random_color_comb(pin_amount, color_amount)
-
-        print("\nColor options:", color_text, '\n')
-
-        while True:
-            attempts.append(get_attempt(possi, attempts, feedbacks, color_text))
-
-            attempt_string = ''
-            for color_code in attempts[-1]:
-                attempt_string = attempt_string + ' ' + color_text[color_code]
-            print("Attempt:" + attempt_string)
-
-            feedbacks.append(get_feedback(cor, attempts[-1]))
-            print("Feedback:", feedbacks[-1])
-            if feedbacks[-1][0] == pin_amount:
-                print("\nDone in {} steps".format(len(attempts)))
-                break
-
-            possi = update_possibilities(possi, attempts, feedbacks)
-            if len(possi) <= 0:
-                print("\nNo possibilities")
-                break
-            print("Still {} possibilities".format(len(possi)))
-        print()
+        
     except:
         print("Something went wrong during the game.")
+    """
 
 
 #   A example of getting user input for the settings of the game
@@ -200,12 +205,14 @@ if __name__ == "__main__":
     else:
         color_amount = default_color_amount
 
-    color_text = input("Which colors are you playing with (in text)? blank will be the default:\n{}\n"
+    color_text = input("Which colors are you playing with (in text)? blank will be the default:\n{}\t"
                        .format(str(default_color_text[:color_amount])[1:-1].replace('\'', '').replace(',', '')))
     if color_text == '':
-        color_text = default_color_text
+        color_text = default_color_text[:color_amount]
     else:
         color_text = color_text.split(' ')
+
+    duplicates = input("Allow duplicate colors in the secret code: Y/n\t").lower() not in ('n', 'no')
 
     secret = None
     if master == get_pro_feedback:
@@ -216,4 +223,4 @@ if __name__ == "__main__":
             secret = None
 
     play(get_feedback=master, get_attempt=breaker, cor=secret, pin_amount=pin_amount, color_amount=color_amount,
-         color_text=color_text)
+         color_text=color_text, duplicates=duplicates)
