@@ -6,7 +6,7 @@ HBO-ICT Utrecht AI Structured Programming
 Mastermind
 
 It's really easy to crash the program, there is very little user input check,
-because that wasn't my point of the project, it was about the logic
+because that wasn't my point of the project, that's more front-end, this was about the logic
 """
 
 #   defaults:
@@ -47,7 +47,7 @@ def random_color_comb(pin_am, color_am, duplicates):
     color_comb = []
     for i in range(pin_am):
         new_color = random.randint(0, color_am - 1)
-        while not(duplicates) and new_color in color_comb:
+        while not (duplicates) and new_color in color_comb:
             new_color = random.randint(0, color_am - 1)
         color_comb.append(new_color)
     return color_comb
@@ -66,7 +66,7 @@ def color_string_to_code_list(color_string, color_text):
 #   The program takes the correct code and a attempt and gives feedback,
 #   like [1, 2] the zeroth index means that one pin is correct
 #   and first index means two are the right color but not in the right place
-def get_pro_feedback(correct_comb, attempt):
+def get_pro_feedback(correct_comb, attempt, pin_amount=default_pin_amount):
     correct_comb: list
     attempt: list
     feedback = [0, 0]
@@ -98,45 +98,53 @@ def update_possibilities(possibilities, past_atmpt, feedbacks):
     return poss
 
 
-#   The program gives a new attempt based on the possibilities, the previous attempts and the feedback it got
-#   However this function was writting before I read the "YET ANOTHER MASTERMIND STRATEGY paper by Barteld Kooi",
+#   Gives the amount of combinations would be removed if this would be run through update_possibilities()
+def amount_updated(possibilities, past_atmpt, feedbacks):
+    amount_remove = 0
+    for tc_i in range(len(possibilities)):  # Test Case index
+        if not (get_pro_feedback(possibilities[tc_i], past_atmpt[-1]) == feedbacks[-1]):
+            amount_remove += 1
+    return amount_remove
+
+
+#   Gives a new attempt based on feedback
+#   However this function was written before I read the "YET ANOTHER MASTERMIND STRATEGY paper by Barteld Kooi",
 #   it's basically the same as his 2.1 strategy
-def a_simple_strategy(poss, att, feeds, color_text):
+def a_simple_strategy(poss, att, feeds, color_text, all_combs):
     return poss[random.randint(0, len(poss) - 1)]
 
 
-#   following lines are "under construction", these will at the moment never be run
-"""
-def looking_one_step_ahead(poss, att, feeds, color_text):
-    unused_poss = [i for j, i in enumerate(poss) if j not in att]
-    scores = []
-    for left_poss_i in range(len(poss)):
-        print(left_poss_i, scores)
-        worst_score = None
-        for un_poss_i in range(len(unused_poss)):
-            feedback = get_pro_feedback(poss[left_poss_i], unused_poss[un_poss_i])
-            score = len(update_possibilities(poss, att, [feedback]))
-            #print(score)
-            if worst_score is None:
-                worst_score = score
-            elif score > worst_score:
-                worst_score = score
-        scores.append(worst_score)
-    return poss[scores.index(min(scores))]
-"""
+#   Gives a new attempt based on feedback
+#   A custom strategy which compares every option vs every possibility
+#   and looks how many combinations it would remove from the possibilities,
+#   then chooses the one that removes the most on average
+#   The problem is that the amount of sets to compare increases VERY fast when adding more pins or colors
+def custom_strategy(poss, att, feeds, color_text, all_combs):
+    if len(poss) == 1:
+        return poss[0]
 
+    unused_poss = [i for j, i in enumerate(all_combs) if j not in att]
+    gem_rem = []
 
-def process_efficient_strategy(poss, att, feeds, color_text):
-    pass
+    for unused_i in range(len(unused_poss)):
+        amount_rem = []
+        for poss_i in range(len(poss)):
+            attempt = unused_poss[unused_i]
+            amount_rem.append(amount_updated(poss, [attempt], [get_pro_feedback(poss[poss_i], attempt)]))
+        if unused_i % 20 == 0:
+            print("{}% done till next attempt".format(int((unused_i + 1) / len(unused_poss) * 100)))
+        gem_rem.append(sum(amount_rem) / len(amount_rem))
+
+    return unused_poss[gem_rem.index(max(gem_rem))]
 
 
 #   Asks the user in the console for feedback
-def get_user_feedback(poss, att):
+def get_user_feedback(poss, att, pin_amount):
     while True:
         try:
             feedback = [int(input("Number of pins of the right color in the right spot:\t")),
                         int(input("Number of pins of the right color not in the right spot:"))]
-            if 0 <= feedback[0] <= 4 and 0 <= feedback[1] <= 4 and sum(feedback) <= 4:
+            if 0 <= feedback[0] <= pin_amount and 0 <= feedback[1] <= pin_amount and sum(feedback) <= pin_amount:
                 return feedback
             else:
                 print("Number of pins not possible.")
@@ -145,7 +153,7 @@ def get_user_feedback(poss, att):
 
 
 #   Asks the user in the console for a attempt
-def get_user_attempt(poss, att, feeds, color_text):
+def get_user_attempt(poss, att, feeds, color_text, all_combs):
     while True:
         try:
             return color_string_to_code_list(input("Attempt:\t"), color_text)
@@ -162,7 +170,8 @@ def play(get_feedback=get_pro_feedback,
          color_amount=default_color_amount,
          color_text=default_color_text,
          duplicates=True):
-    possi = generate_all_possibilities(pin_amount, color_amount, duplicates)
+    all_combinations = generate_all_possibilities(pin_amount, color_amount, duplicates)
+    possi = list(all_combinations)
     attempts, feedbacks = [], []
     if cor is None:
         cor = random_color_comb(pin_amount, color_amount, duplicates)
@@ -170,14 +179,14 @@ def play(get_feedback=get_pro_feedback,
     print("\nColor options:", color_text, '\n')
 
     while True:
-        attempts.append(get_attempt(possi, attempts, feedbacks, color_text))
+        attempts.append(get_attempt(possi, attempts, feedbacks, color_text, all_combinations))
 
         attempt_string = ''
         for color_code in attempts[-1]:
             attempt_string = attempt_string + ' ' + color_text[color_code]
         print("Attempt:" + attempt_string)
 
-        feedbacks.append(get_feedback(cor, attempts[-1]))
+        feedbacks.append(get_feedback(cor, attempts[-1], pin_amount))
         print("Feedback:", feedbacks[-1])
         if feedbacks[-1][0] == pin_amount:
             print("\nDone in {} steps".format(len(attempts)))
@@ -193,10 +202,11 @@ def play(get_feedback=get_pro_feedback,
 
 #   A example of getting user input for the settings of the game
 if __name__ == "__main__":
-    if input("Should the computer be the code breaker? Y/n\t").lower() in ('n', 'no'):
-        breaker = get_user_attempt
-    else:
-        breaker = a_simple_strategy
+    breaker = (get_user_attempt, a_simple_strategy, custom_strategy) \
+        [int(input("Who should be the code breaker? user, simple_strategy, custom_strategy. choose 1, 2 or 3\t")) - 1]
+    if breaker == custom_strategy:
+        print("WARNING: decrease the amount of pins / amount of colors / disable duplicates,\n"
+              "processing times can be very long with the default settings")
 
     if input("Should the computer be the code master? Y/n\t").lower() in ('n', 'no'):
         master = get_user_feedback
