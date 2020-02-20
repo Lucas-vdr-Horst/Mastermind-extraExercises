@@ -1,4 +1,5 @@
 import random
+import multiprocessing
 
 """
 Lucas van der Horst
@@ -7,6 +8,10 @@ Mastermind
 
 It's really easy to crash the program, there is very little user input check,
 because that wasn't my point of the project, that's more front-end, this was about the logic
+
+For the multiprocessing used:
+https://stackoverflow.com/questions/23816546/how-many-processes-should-i-run-in-parallel
+https://stackoverflow.com/questions/10415028/how-can-i-recover-the-return-value-of-a-function-passed-to-multiprocessing-proce
 """
 
 #   defaults:
@@ -114,6 +119,16 @@ def a_simple_strategy(poss, att, feeds, color_text, all_combs):
     return poss[random.randint(0, len(poss) - 1)]
 
 
+#   Part of the multiprocessing, tests one attempt against all the possibilities,
+#   counts the amount of possibilities can be removed and returns the average
+def gem_rem_worker(poss, unused_poss, unused_i, return_list):
+    amount_rem = []
+    for poss_i in range(len(poss)):
+        attempt = unused_poss[unused_i]
+        amount_rem.append(amount_updated(poss, [attempt], [get_pro_feedback(poss[poss_i], attempt)]))
+    return_list[unused_i] = sum(amount_rem) / len(amount_rem)
+
+
 #   Gives a new attempt based on feedback
 #   A custom strategy which compares every option vs every possibility
 #   and looks how many combinations it would remove from the possibilities,
@@ -123,17 +138,19 @@ def custom_strategy(poss, att, feeds, color_text, all_combs):
     if len(poss) == 1:
         return poss[0]
 
+    manager = multiprocessing.Manager()
     unused_poss = [i for j, i in enumerate(all_combs) if j not in att]
-    gem_rem = []
+    gem_rem = manager.list()
+    num_workers = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(num_workers)
+
+    for i in range(len(unused_poss)):
+        gem_rem.append(0)
 
     for unused_i in range(len(unused_poss)):
-        amount_rem = []
-        for poss_i in range(len(poss)):
-            attempt = unused_poss[unused_i]
-            amount_rem.append(amount_updated(poss, [attempt], [get_pro_feedback(poss[poss_i], attempt)]))
-        if unused_i % 20 == 0:
-            print("{}% done till next attempt".format(int((unused_i + 1) / len(unused_poss) * 100)))
-        gem_rem.append(sum(amount_rem) / len(amount_rem))
+        pool.apply_async(gem_rem_worker, args=(poss, unused_poss, unused_i, gem_rem))
+    pool.close()
+    pool.join()
 
     return unused_poss[gem_rem.index(max(gem_rem))]
 
